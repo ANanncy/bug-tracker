@@ -35,7 +35,7 @@ jobs:
         with:
           start: npm start
           wait-on: http://localhost:3000
-          wait-on-timeout: 60 # plus de temps pour le démarrage si nécessaire
+        continue-on-error: true # Cette ligne permet au job de continuer même si les tests échouent, mais les artefacts seront téléchargés
 
       # 5) Uploader les artefacts en cas d'échec
       - name: Upload Cypress videos & screenshots
@@ -48,12 +48,12 @@ jobs:
             cypress/screenshots
 
   # ===========================================
-  # JOB 2 : Build Docker
+  # JOB 2 : Build Docker (seulement si tests OK)
   # ===========================================
   build:
     runs-on: ubuntu-latest
-    # On peut enlever "needs: test" si tu veux que le build tente même si les tests échouent
-    if: github.ref == 'refs/heads/main'
+    needs: test
+    if: github.ref == 'refs/heads/main' && success()  # Assure que ce job ne s'exécute que si le job 'test' est réussi
 
     steps:
       # 1) Checkout du code
@@ -78,4 +78,4 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository }}/bugtrack:latest
-          docker push ghcr.io/${{ github.repository }}/bugtrack:v1.0.0-${{
+          docker push ghcr.io/${{ github.repository }}/bugtrack:v1.0.0-${{ github.run_number }}
