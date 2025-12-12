@@ -7,68 +7,76 @@ on:
     branches: [ main ]
 
 jobs:
+
   # ===========================================
-  # JOB 1 : Tests
+  # JOB 1 : Tests Cypress
   # ===========================================
   test:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout du code
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # 1) Checkout du code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 2. Setup Node.js (version 20)
+      # 2) Setup Node.js (version 20)
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # 3. Installer les dépendances
+      # 3) Installer les dépendances
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      # 4. Lancer les tests Cypress
+      # 4) Lancer les tests Cypress
       - name: Run Cypress tests
         uses: cypress-io/github-action@v6
+        with:
+          start: npm start
+          wait-on: http://localhost:3000
+          # Ajouter un temps d'attente plus long si nécessaire
+          wait-on-timeout: 60
 
-      # 5. Uploader les artefacts (vidéos/screenshots) en cas d'échec
-      - name: Upload Cypress artifacts
+      # 5) Uploader les artefacts en cas d'échec
+      - name: Upload Cypress videos & screenshots
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: cypress-artifacts
-          path: cypress/videos/**,cypress/screenshots/**
+          path: |
+            cypress/videos
+            cypress/screenshots
 
   # ===========================================
-  # JOB 2 : Build Docker
+  # JOB 2 : Build Docker (seulement si tests OK)
   # ===========================================
   build:
     runs-on: ubuntu-latest
-    # needs: test  <-- supprimé pour que le build s'exécute même si les tests échouent
-    if: github.ref == 'refs/heads/main'  # Seulement sur main
+    # needs: test  # Optionnel : enlever "needs" pour que le build ne dépende pas des tests
+    if: github.ref == 'refs/heads/main'
 
     steps:
-      # 1. Checkout du code
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # 1) Checkout du code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 2. Login au registry Docker (GitHub Container Registry)
-      - name: Login to GitHub Container Registry
+      # 2) Login au GitHub Container Registry
+      - name: Login to GHCR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. Build de l'image Docker avec tags appropriés
+      # 3) Build de l'image Docker
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}/my-app:latest .
-          docker tag ghcr.io/${{ github.repository }}/my-app:latest ghcr.io/${{ github.repository }}/my-app:v1.0.0-${{ github.run_number }}
+          docker build -t ghcr.io/${{ github.repository }}/bugtrack:latest .
+          docker build -t ghcr.io/${{ github.repository }}/bugtrack:v1.0.0-${{ github.run_number }} .
 
-      # 4. Push de l'image vers le registry
+      # 4) Push de l’image Docker
       - name: Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository }}/my-app:latest
-          docker push ghcr.io/${{ github.repository }}/my-app:v1.0.0-${{ github.run_number }}
+          docker push ghcr.io/${{ github.repository }}/bugtrack:latest
+          docker push ghcr.io/${{ github.repository }}/bugtrack:v1.0.0-${{ github.run_number }}
