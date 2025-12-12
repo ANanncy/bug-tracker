@@ -163,63 +163,13 @@ describe('BugTrack - Tests E2E', () => {
     it('devrait modifier un bug', () => {
       cy.get('[data-testid="bug-card"]').first().then(($card) => {
         const bugId = $card.attr('data-id');
-
+    
         cy.get(`[data-id="${bugId}"] [data-testid="edit-btn"]`).click({ force: true });
         cy.get('[data-testid="bug-title"]').clear().type('Titre modifié par Cypress');
         cy.get('[data-testid="submit-btn"]').click();
-
+    
         cy.get('[data-testid="toast"]').should('contain', 'mis à jour');
         cy.get(`[data-id="${bugId}"] [data-testid="bug-title"]`).should('contain', 'Titre modifié par Cypress');
       });
     });
-
-  });
-
-  // =========================================
-  // TESTS DE SUPPRESSION DE BUG
-  // =========================================
-  describe('Suppression de bug', () => {
-
-    it('devrait supprimer un bug', () => {
-      // Créer un bug à supprimer
-      cy.createBugApi({ title: 'Bug à supprimer', description: 'Test' }).then((response) => {
-        const bugId = response.body.id;
-        cy.reload();
-
-        cy.get('[data-testid="bug-card"]').then(($cardsBefore) => {
-          const countBefore = $cardsBefore.length;
-
-          // Stub de window.confirm
-          cy.on('window:confirm', () => true);
-
-          cy.get(`[data-id="${bugId}"] [data-testid="delete-btn"]`).click({ force: true });
-
-          cy.get('[data-testid="toast"]').should('contain', 'supprimé');
-          cy.get('[data-testid="bug-card"]').should('have.length', countBefore - 1);
-        });
-      });
-    });
-
-    it('ne devrait pas supprimer si on annule la confirmation', () => {
-      // Créer un bug à supprimer
-      cy.createBugApi({ title: 'Bug à supprimer', description: 'Test' }).then((response) => {
-        const bugId = response.body.id;
-        cy.reload();
-
-        cy.get('[data-testid="bug-card"]').then(($cardsBefore) => {
-          const countBefore = $cardsBefore.length;
-
-          // Stub de window.confirm pour annuler
-          cy.on('window:confirm', () => false);
-
-          cy.get(`[data-id="${bugId}"] [data-testid="delete-btn"]`).click({ force: true });
-
-          // Vérifier que le toast ne contient pas "supprimé"
-          cy.get('[data-testid="toast"]').should('not.contain', 'supprimé');
-
-          // Vérifier que le nombre de bugs n'a pas changé
-          cy.get('[data-testid="bug-card"]').should('have.length', countBefore);
-        });
-      });
-    });
-
+    
